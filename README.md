@@ -1,15 +1,15 @@
 # SVG2PNG
 
-A static browser tool for converting SVG files to PNG.
+一个纯静态的 SVG 转 PNG 小工具。
 
-## Features
+## 功能
 
-- Drag and drop SVG upload
-- File picker upload
-- PNG preview in the page
-- One-click PNG download
-- UTF-8 and common Chinese encoding handling for SVG text
+- 支持拖拽上传 SVG 文件
+- 支持点击选择 SVG 文件
+- 在页面中预览转换后的 PNG
+- 一键下载 PNG 文件
+- 兼容 UTF-8、GB18030/GBK 等常见中文编码，降低中文字符乱码风险
 
-## Usage
+## 使用方式
 
-Open `index.html` in a browser, then upload an SVG file. The conversion runs locally in the browser.
+直接用浏览器打开 `index.html`，上传 SVG 文件后即可在页面中预览并下载 PNG。转换过程全部在本地浏览器中完成。
