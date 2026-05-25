@@ -1,0 +1,252 @@
+:root {
+  color-scheme: light;
+  --bg: #f6f7f2;
+  --panel: #ffffff;
+  --ink: #1c2430;
+  --muted: #657083;
+  --line: #d9ded4;
+  --accent: #1f7a6d;
+  --accent-dark: #15594f;
+  --danger: #b42318;
+  --shadow: 0 18px 50px rgba(28, 36, 48, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family:
+    "Inter", "Segoe UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC",
+    Arial, sans-serif;
+  color: var(--ink);
+  background:
+    linear-gradient(135deg, rgba(31, 122, 109, 0.12), transparent 34%),
+    linear-gradient(315deg, rgba(212, 146, 54, 0.12), transparent 34%),
+    var(--bg);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.app {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 18px;
+}
+
+.workspace {
+  width: min(980px, 100%);
+  display: grid;
+  gap: 20px;
+  padding: clamp(20px, 4vw, 36px);
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(217, 222, 212, 0.9);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+}
+
+.intro {
+  display: grid;
+  gap: 8px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 1.05;
+}
+
+.subtitle {
+  max-width: 640px;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+.drop-zone {
+  min-height: 230px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  padding: 28px;
+  border: 2px dashed #9aa899;
+  border-radius: 8px;
+  background: #fbfcf8;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.drop-zone:hover,
+.drop-zone.dragging {
+  border-color: var(--accent);
+  background: #f0f8f4;
+  transform: translateY(-1px);
+}
+
+.drop-zone input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.upload-icon {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.upload-title {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.upload-subtitle,
+.status,
+#fileMeta {
+  color: var(--muted);
+}
+
+.status {
+  min-height: 24px;
+  font-size: 14px;
+}
+
+.status.error {
+  color: var(--danger);
+}
+
+.preview-section {
+  display: grid;
+  gap: 16px;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+h2 {
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+#fileMeta {
+  margin-top: 5px;
+  font-size: 14px;
+}
+
+.download-btn {
+  min-width: 124px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 18px;
+  color: white;
+  background: var(--accent);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.download-btn:hover:not(:disabled) {
+  background: var(--accent-dark);
+}
+
+.download-btn:disabled {
+  cursor: not-allowed;
+  background: #a8b2ae;
+}
+
+.preview-frame {
+  position: relative;
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background:
+    linear-gradient(45deg, #eef1ea 25%, transparent 25%),
+    linear-gradient(-45deg, #eef1ea 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #eef1ea 75%),
+    linear-gradient(-45deg, transparent 75%, #eef1ea 75%);
+  background-color: #ffffff;
+  background-position:
+    0 0,
+    0 10px,
+    10px -10px,
+    -10px 0;
+  background-size: 20px 20px;
+}
+
+#pngPreview {
+  display: none;
+  max-width: 100%;
+  max-height: 70vh;
+}
+
+#pngPreview.ready {
+  display: block;
+}
+
+#emptyPreview {
+  color: var(--muted);
+  padding: 24px;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .app {
+    padding: 16px;
+    place-items: start center;
+  }
+
+  .preview-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .download-btn {
+    width: 100%;
+  }
+
+  .drop-zone {
+    min-height: 190px;
+  }
+}

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SVG 转 PNG</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="workspace" aria-labelledby="title">
+        <div class="intro">
+          <p class="eyebrow">SVG2PNG</p>
+          <h1 id="title">SVG 转 PNG</h1>
+          <p class="subtitle">拖入 SVG 文件或选择文件，在本地浏览器中转换并下载 PNG。</p>
+        </div>
+
+        <label class="drop-zone" id="dropZone" for="fileInput">
+          <input id="fileInput" type="file" accept=".svg,image/svg+xml" />
+          <span class="upload-icon" aria-hidden="true">+</span>
+          <span class="upload-title">拖动 SVG 到这里</span>
+          <span class="upload-subtitle">或点击选择文件</span>
+        </label>
+
+        <div class="status" id="status" role="status">等待上传 SVG 文件</div>
+
+        <section class="preview-section" aria-label="转换结果">
+          <div class="preview-header">
+            <div>
+              <h2>PNG 预览</h2>
+              <p id="fileMeta">尚未生成图片</p>
+            </div>
+            <button class="download-btn" id="downloadBtn" type="button" disabled>下载 PNG</button>
+          </div>
+          <div class="preview-frame">
+            <img id="pngPreview" alt="转换后的 PNG 预览" />
+            <span id="emptyPreview">转换完成后将在这里预览</span>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
