@@ -103,6 +103,7 @@ h1 {
 
 .tabs {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 6px;
   padding: 5px;
   border: 1px solid var(--line);
@@ -264,7 +265,7 @@ h3 {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  align-items: center;
+  align-items: flex-start;
 }
 
 #svgFileMeta,
@@ -273,25 +274,47 @@ h3 {
   font-size: 14px;
 }
 
+.action-group {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.tool-btn,
 .download-btn {
-  min-width: 124px;
   min-height: 44px;
   border: 0;
   border-radius: 8px;
   padding: 10px 18px;
-  color: white;
-  background: var(--accent);
   font-weight: 700;
   cursor: pointer;
+}
+
+.tool-btn {
+  color: var(--accent-dark);
+  background: #e5f1eb;
+}
+
+.tool-btn:hover:not(:disabled) {
+  background: #d6eadf;
+}
+
+.download-btn {
+  min-width: 124px;
+  color: white;
+  background: var(--accent);
 }
 
 .download-btn:hover:not(:disabled) {
   background: var(--accent-dark);
 }
 
+.tool-btn:disabled,
 .download-btn:disabled {
   cursor: not-allowed;
   background: #a8b2ae;
+  color: #ffffff;
 }
 
 .preview-frame {
@@ -317,19 +340,22 @@ h3 {
 }
 
 #pngPreview,
-#svgPreview {
+#svgPreview,
+#jpgPreview {
   display: none;
   max-width: 100%;
   max-height: 70vh;
 }
 
 #pngPreview.ready,
-#svgPreview.ready {
+#svgPreview.ready,
+#jpgPreview.ready {
   display: block;
 }
 
 #pngEmptyPreview,
-#svgEmptyPreview {
+#svgEmptyPreview,
+#jpgEmptyPreview {
   color: var(--muted);
   padding: 24px;
   text-align: center;
@@ -357,6 +383,14 @@ h3 {
 
   .download-btn {
     width: 100%;
+  }
+
+  .tool-btn {
+    flex: 1 1 140px;
+  }
+
+  .action-group {
+    justify-content: stretch;
   }
 
   .drop-zone {

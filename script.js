@@ -7,6 +7,8 @@ const svgStatus = document.querySelector("#svgStatus");
 const pngPreview = document.querySelector("#pngPreview");
 const pngEmptyPreview = document.querySelector("#pngEmptyPreview");
 const pngDownloadBtn = document.querySelector("#pngDownloadBtn");
+const pngRotateLeftBtn = document.querySelector("#pngRotateLeftBtn");
+const pngRotateRightBtn = document.querySelector("#pngRotateRightBtn");
 const svgFileMeta = document.querySelector("#svgFileMeta");
 
 const imageDropZone = document.querySelector("#imageDropZone");
@@ -15,15 +17,73 @@ const imageStatus = document.querySelector("#imageStatus");
 const svgPreview = document.querySelector("#svgPreview");
 const svgEmptyPreview = document.querySelector("#svgEmptyPreview");
 const svgDownloadBtn = document.querySelector("#svgDownloadBtn");
+const svgRotateLeftBtn = document.querySelector("#svgRotateLeftBtn");
+const svgRotateRightBtn = document.querySelector("#svgRotateRightBtn");
 const imageFileMeta = document.querySelector("#imageFileMeta");
 const whiteTolerance = document.querySelector("#whiteTolerance");
 const whiteToleranceValue = document.querySelector("#whiteToleranceValue");
 
-let pngUrl = "";
-let pngDownloadName = "converted.png";
-let svgUrl = "";
-let svgDownloadName = "converted.svg";
+const docDropZone = document.querySelector("#docDropZone");
+const docFileInput = document.querySelector("#docFileInput");
+const docStatus = document.querySelector("#docStatus");
+const jpgPreview = document.querySelector("#jpgPreview");
+const jpgEmptyPreview = document.querySelector("#jpgEmptyPreview");
+const jpgDownloadBtn = document.querySelector("#jpgDownloadBtn");
+const jpgRotateLeftBtn = document.querySelector("#jpgRotateLeftBtn");
+const jpgRotateRightBtn = document.querySelector("#jpgRotateRightBtn");
+const docFileMeta = document.querySelector("#docFileMeta");
+const backgroundStrength = document.querySelector("#backgroundStrength");
+const backgroundStrengthValue = document.querySelector("#backgroundStrengthValue");
+
 let lastImageFile = null;
+let lastDocFile = null;
+
+const outputs = {
+  png: createOutputState({
+    extension: ".png",
+    mime: "image/png",
+    preview: pngPreview,
+    empty: pngEmptyPreview,
+    meta: svgFileMeta,
+    download: pngDownloadBtn,
+    rotateLeft: pngRotateLeftBtn,
+    rotateRight: pngRotateRightBtn,
+    transparent: true,
+  }),
+  svg: createOutputState({
+    extension: ".svg",
+    mime: "image/svg+xml;charset=utf-8",
+    preview: svgPreview,
+    empty: svgEmptyPreview,
+    meta: imageFileMeta,
+    download: svgDownloadBtn,
+    rotateLeft: svgRotateLeftBtn,
+    rotateRight: svgRotateRightBtn,
+    transparent: true,
+  }),
+  jpg: createOutputState({
+    extension: ".jpg",
+    mime: "image/jpeg",
+    preview: jpgPreview,
+    empty: jpgEmptyPreview,
+    meta: docFileMeta,
+    download: jpgDownloadBtn,
+    rotateLeft: jpgRotateLeftBtn,
+    rotateRight: jpgRotateRightBtn,
+    transparent: false,
+  }),
+};
+
+function createOutputState(config) {
+  return {
+    ...config,
+    url: "",
+    baseCanvas: null,
+    fileName: "converted" + config.extension,
+    rotation: 0,
+    description: "",
+  };
+}
 
 function setStatus(element, message, isError = false) {
   element.textContent = message;
@@ -36,24 +96,22 @@ function revokeUrl(url) {
   }
 }
 
-function resetSvgToPngResult() {
-  revokeUrl(pngUrl);
-  pngUrl = "";
-  pngPreview.removeAttribute("src");
-  pngPreview.classList.remove("ready");
-  pngEmptyPreview.hidden = false;
-  pngDownloadBtn.disabled = true;
-  svgFileMeta.textContent = "尚未生成图片";
+function setButtonsEnabled(output, enabled) {
+  output.download.disabled = !enabled;
+  output.rotateLeft.disabled = !enabled;
+  output.rotateRight.disabled = !enabled;
 }
 
-function resetImageToSvgResult() {
-  revokeUrl(svgUrl);
-  svgUrl = "";
-  svgPreview.removeAttribute("src");
-  svgPreview.classList.remove("ready");
-  svgEmptyPreview.hidden = false;
-  svgDownloadBtn.disabled = true;
-  imageFileMeta.textContent = "尚未生成 SVG";
+function resetOutput(output, emptyText) {
+  revokeUrl(output.url);
+  output.url = "";
+  output.baseCanvas = null;
+  output.rotation = 0;
+  output.preview.removeAttribute("src");
+  output.preview.classList.remove("ready");
+  output.empty.hidden = false;
+  output.meta.textContent = emptyText;
+  setButtonsEnabled(output, false);
 }
 
 function getOutputName(fileName, extension) {
@@ -170,16 +228,108 @@ function loadImage(src) {
   });
 }
 
-function canvasToBlob(canvas, type) {
+function canvasToBlob(canvas, type, quality) {
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) {
-        resolve(blob);
-      } else {
-        reject(new Error("图片生成失败。"));
-      }
-    }, type);
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error("图片生成失败。"));
+        }
+      },
+      type,
+      quality,
+    );
   });
+}
+
+function cloneCanvas(source) {
+  const canvas = document.createElement("canvas");
+  canvas.width = source.width;
+  canvas.height = source.height;
+  canvas.getContext("2d").drawImage(source, 0, 0);
+  return canvas;
+}
+
+function drawRotatedCanvas(source, rotation, transparent) {
+  const normalized = ((rotation % 360) + 360) % 360;
+  const swapped = normalized === 90 || normalized === 270;
+  const canvas = document.createElement("canvas");
+  canvas.width = swapped ? source.height : source.width;
+  canvas.height = swapped ? source.width : source.height;
+
+  const ctx = canvas.getContext("2d");
+  if (!transparent) {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate((normalized * Math.PI) / 180);
+  ctx.drawImage(source, -source.width / 2, -source.height / 2);
+  return canvas;
+}
+
+async function renderRasterOutput(output) {
+  const canvas = drawRotatedCanvas(output.baseCanvas, output.rotation, output.transparent);
+  const blob = await canvasToBlob(canvas, output.mime, output.mime === "image/jpeg" ? 0.94 : undefined);
+  revokeUrl(output.url);
+  output.url = URL.createObjectURL(blob);
+  output.preview.src = output.url;
+  output.preview.classList.add("ready");
+  output.empty.hidden = true;
+  setButtonsEnabled(output, true);
+  output.meta.textContent = `${output.description} -> ${canvas.width} x ${canvas.height} ${output.extension.slice(1).toUpperCase()}`;
+}
+
+async function renderSvgOutput(output) {
+  const canvas = drawRotatedCanvas(output.baseCanvas, output.rotation, true);
+  const pngDataUrl = canvas.toDataURL("image/png");
+  const svgText = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${canvas.width} ${canvas.height}">`,
+    `<title>${escapeXml(output.description)} converted with white transparency</title>`,
+    `<image href="${pngDataUrl}" width="${canvas.width}" height="${canvas.height}" preserveAspectRatio="xMidYMid meet"/>`,
+    "</svg>",
+  ].join("");
+  const blob = new Blob([svgText], { type: output.mime });
+
+  revokeUrl(output.url);
+  output.url = URL.createObjectURL(blob);
+  output.preview.src = output.url;
+  output.preview.classList.add("ready");
+  output.empty.hidden = true;
+  setButtonsEnabled(output, true);
+  output.meta.textContent = `${output.description} -> ${canvas.width} x ${canvas.height} SVG`;
+}
+
+async function rotateOutput(output, delta) {
+  if (!output.baseCanvas) {
+    return;
+  }
+
+  output.rotation = (output.rotation + delta + 360) % 360;
+  if (output.extension === ".svg") {
+    await renderSvgOutput(output);
+  } else {
+    await renderRasterOutput(output);
+  }
+}
+
+async function setRasterOutput(output, canvas, fileName, description) {
+  output.baseCanvas = cloneCanvas(canvas);
+  output.rotation = 0;
+  output.fileName = getOutputName(fileName, output.extension);
+  output.description = description || fileName;
+  await renderRasterOutput(output);
+}
+
+async function setSvgOutput(output, canvas, fileName, description) {
+  output.baseCanvas = cloneCanvas(canvas);
+  output.rotation = 0;
+  output.fileName = getOutputName(fileName, ".svg");
+  output.description = description || fileName;
+  await renderSvgOutput(output);
 }
 
 async function convertSvgFile(file) {
@@ -187,7 +337,7 @@ async function convertSvgFile(file) {
     throw new Error("请上传 .svg 文件。");
   }
 
-  resetSvgToPngResult();
+  resetOutput(outputs.png, "尚未生成图片");
   setStatus(svgStatus, "正在读取 SVG 文件...");
 
   const buffer = await file.arrayBuffer();
@@ -209,18 +359,48 @@ async function convertSvgFile(file) {
     ctx.clearRect(0, 0, size.width, size.height);
     ctx.drawImage(image, 0, 0, size.width, size.height);
 
-    const blob = await canvasToBlob(canvas, "image/png");
-    pngUrl = URL.createObjectURL(blob);
-    pngDownloadName = getOutputName(file.name, ".png");
-    pngPreview.src = pngUrl;
-    pngPreview.classList.add("ready");
-    pngEmptyPreview.hidden = true;
-    pngDownloadBtn.disabled = false;
-    svgFileMeta.textContent = `${file.name} -> ${Math.round(size.width)} x ${Math.round(size.height)} PNG`;
+    await setRasterOutput(outputs.png, canvas, file.name, file.name);
     setStatus(svgStatus, "转换完成。");
   } finally {
     URL.revokeObjectURL(sourceSvgUrl);
   }
+}
+
+async function imageFileToCanvas(file) {
+  const sourceUrl = URL.createObjectURL(file);
+
+  try {
+    const image = await loadImage(sourceUrl);
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth || image.width;
+    canvas.height = image.naturalHeight || image.height;
+    canvas.getContext("2d", { willReadFrequently: true }).drawImage(image, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  } finally {
+    URL.revokeObjectURL(sourceUrl);
+  }
+}
+
+function makeWhiteTransparent(canvas, tolerance) {
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  let transparentPixels = 0;
+
+  for (let index = 0; index < data.length; index += 4) {
+    const red = data[index];
+    const green = data[index + 1];
+    const blue = data[index + 2];
+    const alpha = data[index + 3];
+
+    if (alpha > 0 && red >= 255 - tolerance && green >= 255 - tolerance && blue >= 255 - tolerance) {
+      data[index + 3] = 0;
+      transparentPixels += 1;
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+  return transparentPixels;
 }
 
 async function convertImageFile(file) {
@@ -228,65 +408,81 @@ async function convertImageFile(file) {
     throw new Error("请上传 PNG、JPG、WebP、BMP 或 GIF 图片。");
   }
 
-  resetImageToSvgResult();
+  resetOutput(outputs.svg, "尚未生成 SVG");
   setStatus(imageStatus, "正在读取图片并透明化白色区域...");
 
-  const imageSourceUrl = URL.createObjectURL(file);
+  const canvas = await imageFileToCanvas(file);
+  const transparentPixels = makeWhiteTransparent(canvas, Number(whiteTolerance.value));
+  await setSvgOutput(outputs.svg, canvas, file.name, `${file.name}，透明化 ${transparentPixels} 个像素`);
+  setStatus(imageStatus, "转换完成。");
+}
 
-  try {
-    const image = await loadImage(imageSourceUrl);
-    const canvas = document.createElement("canvas");
-    canvas.width = image.naturalWidth || image.width;
-    canvas.height = image.naturalHeight || image.height;
+function cleanDocumentBackground(canvas, strength) {
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  const threshold = 150 - Math.round(strength * 0.45);
+  const saturationLimit = 46 + Math.round(strength * 0.34);
+  let whitenedPixels = 0;
 
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+  for (let index = 0; index < data.length; index += 4) {
+    const red = data[index];
+    const green = data[index + 1];
+    const blue = data[index + 2];
+    const max = Math.max(red, green, blue);
+    const min = Math.min(red, green, blue);
+    const saturation = max - min;
+    const brightness = (red + green + blue) / 3;
 
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-    const tolerance = Number(whiteTolerance.value);
-    let transparentPixels = 0;
-
-    for (let index = 0; index < data.length; index += 4) {
-      const red = data[index];
-      const green = data[index + 1];
-      const blue = data[index + 2];
-      const alpha = data[index + 3];
-
-      if (alpha > 0 && red >= 255 - tolerance && green >= 255 - tolerance && blue >= 255 - tolerance) {
-        data[index + 3] = 0;
-        transparentPixels += 1;
-      }
+    if (brightness >= threshold && saturation <= saturationLimit) {
+      const mix = Math.min(1, 0.55 + strength / 140);
+      data[index] = Math.round(red + (255 - red) * mix);
+      data[index + 1] = Math.round(green + (255 - green) * mix);
+      data[index + 2] = Math.round(blue + (255 - blue) * mix);
+      whitenedPixels += 1;
+    } else {
+      const contrast = 1.04 + strength / 500;
+      data[index] = clampColor((red - 128) * contrast + 128);
+      data[index + 1] = clampColor((green - 128) * contrast + 128);
+      data[index + 2] = clampColor((blue - 128) * contrast + 128);
     }
 
-    ctx.putImageData(imageData, 0, 0);
-    const transparentPng = canvas.toDataURL("image/png");
-    const svgText = [
-      `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}" viewBox="0 0 ${canvas.width} ${canvas.height}">`,
-      `<title>${escapeXml(file.name)} converted with white transparency</title>`,
-      `<image href="${transparentPng}" width="${canvas.width}" height="${canvas.height}" preserveAspectRatio="xMidYMid meet"/>`,
-      "</svg>",
-    ].join("");
-
-    const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
-    svgUrl = URL.createObjectURL(blob);
-    svgDownloadName = getOutputName(file.name, ".svg");
-    svgPreview.src = svgUrl;
-    svgPreview.classList.add("ready");
-    svgEmptyPreview.hidden = true;
-    svgDownloadBtn.disabled = false;
-    imageFileMeta.textContent = `${file.name} -> ${canvas.width} x ${canvas.height} SVG，透明化 ${transparentPixels} 个像素`;
-    setStatus(imageStatus, "转换完成。");
-  } finally {
-    URL.revokeObjectURL(imageSourceUrl);
+    data[index + 3] = 255;
   }
+
+  ctx.putImageData(imageData, 0, 0);
+  return whitenedPixels;
+}
+
+function clampColor(value) {
+  return Math.max(0, Math.min(255, Math.round(value)));
+}
+
+async function recognizeDocumentPage(file) {
+  if (!file || !file.type.startsWith("image/") || file.type.includes("svg")) {
+    throw new Error("请上传 PNG、JPG、WebP、BMP 或 GIF 文档照片。");
+  }
+
+  resetOutput(outputs.jpg, "尚未生成 JPG");
+  setStatus(docStatus, "正在识别页面并净化背景...");
+
+  const canvas = await imageFileToCanvas(file);
+  const ctx = canvas.getContext("2d");
+  ctx.globalCompositeOperation = "destination-over";
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.globalCompositeOperation = "source-over";
+
+  const whitenedPixels = cleanDocumentBackground(canvas, Number(backgroundStrength.value));
+  await setRasterOutput(outputs.jpg, canvas, file.name, `${file.name}，白底化 ${whitenedPixels} 个像素`);
+  setStatus(docStatus, "处理完成。");
 }
 
 async function handleSvgFile(file) {
   try {
     await convertSvgFile(file);
   } catch (error) {
-    resetSvgToPngResult();
+    resetOutput(outputs.png, "尚未生成图片");
     setStatus(svgStatus, error.message || "转换失败。", true);
   }
 }
@@ -297,8 +493,19 @@ async function handleImageFile(file) {
   try {
     await convertImageFile(lastImageFile);
   } catch (error) {
-    resetImageToSvgResult();
+    resetOutput(outputs.svg, "尚未生成 SVG");
     setStatus(imageStatus, error.message || "转换失败。", true);
+  }
+}
+
+async function handleDocFile(file) {
+  lastDocFile = file || lastDocFile;
+
+  try {
+    await recognizeDocumentPage(lastDocFile);
+  } catch (error) {
+    resetOutput(outputs.jpg, "尚未生成 JPG");
+    setStatus(docStatus, error.message || "处理失败。", true);
   }
 }
 
@@ -326,20 +533,24 @@ function bindDropUpload(dropZone, fileInput, handler) {
   });
 }
 
-function bindDownload(button, getUrl, getName) {
-  button.addEventListener("click", () => {
-    const url = getUrl();
-    if (!url) {
+function bindDownload(output) {
+  output.download.addEventListener("click", () => {
+    if (!output.url) {
       return;
     }
 
     const link = document.createElement("a");
-    link.href = url;
-    link.download = getName();
+    link.href = output.url;
+    link.download = output.fileName;
     document.body.append(link);
     link.click();
     link.remove();
   });
+}
+
+function bindRotation(output) {
+  output.rotateLeft.addEventListener("click", () => rotateOutput(output, -90));
+  output.rotateRight.addEventListener("click", () => rotateOutput(output, 90));
 }
 
 tabButtons.forEach((button) => {
@@ -370,7 +581,21 @@ whiteTolerance.addEventListener("change", () => {
   }
 });
 
+backgroundStrength.addEventListener("input", () => {
+  backgroundStrengthValue.textContent = backgroundStrength.value;
+});
+
+backgroundStrength.addEventListener("change", () => {
+  if (lastDocFile) {
+    handleDocFile(lastDocFile);
+  }
+});
+
 bindDropUpload(svgDropZone, svgFileInput, handleSvgFile);
 bindDropUpload(imageDropZone, imageFileInput, handleImageFile);
-bindDownload(pngDownloadBtn, () => pngUrl, () => pngDownloadName);
-bindDownload(svgDownloadBtn, () => svgUrl, () => svgDownloadName);
+bindDropUpload(docDropZone, docFileInput, handleDocFile);
+
+Object.values(outputs).forEach((output) => {
+  bindDownload(output);
+  bindRotation(output);
+});

@@ -25,6 +25,9 @@
             <button class="tab-btn" type="button" data-panel="imageToSvg" aria-controls="imageToSvg" aria-selected="false">
               图片转 SVG
             </button>
+            <button class="tab-btn" type="button" data-panel="documentPage" aria-controls="documentPage" aria-selected="false">
+              识别页面
+            </button>
           </nav>
         </header>
 
@@ -49,7 +52,11 @@
                 <h3>PNG 预览</h3>
                 <p id="svgFileMeta">尚未生成图片</p>
               </div>
-              <button class="download-btn" id="pngDownloadBtn" type="button" disabled>下载 PNG</button>
+              <div class="action-group" aria-label="PNG 操作">
+                <button class="tool-btn" id="pngRotateLeftBtn" type="button" disabled>左转 90°</button>
+                <button class="tool-btn" id="pngRotateRightBtn" type="button" disabled>右转 90°</button>
+                <button class="download-btn" id="pngDownloadBtn" type="button" disabled>下载 PNG</button>
+              </div>
             </div>
             <div class="preview-frame">
               <img id="pngPreview" alt="转换后的 PNG 预览" />
@@ -87,11 +94,57 @@
                 <h3>SVG 预览</h3>
                 <p id="imageFileMeta">尚未生成 SVG</p>
               </div>
-              <button class="download-btn" id="svgDownloadBtn" type="button" disabled>下载 SVG</button>
+              <div class="action-group" aria-label="SVG 操作">
+                <button class="tool-btn" id="svgRotateLeftBtn" type="button" disabled>左转 90°</button>
+                <button class="tool-btn" id="svgRotateRightBtn" type="button" disabled>右转 90°</button>
+                <button class="download-btn" id="svgDownloadBtn" type="button" disabled>下载 SVG</button>
+              </div>
             </div>
             <div class="preview-frame">
               <img id="svgPreview" alt="转换后的 SVG 预览" />
               <span id="svgEmptyPreview">转换完成后将在这里预览</span>
+            </div>
+          </section>
+        </section>
+
+        <section class="tool-panel" id="documentPage" aria-label="识别页面" hidden>
+          <div class="tool-copy">
+            <h2>识别页面</h2>
+            <p>上传文档照片，将纸张背景处理为白色，保留文字、表格和图表内容，导出 JPG。</p>
+          </div>
+
+          <label class="drop-zone" id="docDropZone" for="docFileInput">
+            <input id="docFileInput" type="file" accept="image/png,image/jpeg,image/webp,image/bmp,image/gif" />
+            <span class="upload-icon" aria-hidden="true">+</span>
+            <span class="upload-title">拖动文档照片到这里</span>
+            <span class="upload-subtitle">支持 PNG、JPG、WebP、BMP、GIF</span>
+          </label>
+
+          <div class="control-row" aria-label="页面识别设置">
+            <label class="range-control" for="backgroundStrength">
+              <span>背景净化强度</span>
+              <input id="backgroundStrength" type="range" min="0" max="100" value="62" />
+              <output id="backgroundStrengthValue" for="backgroundStrength">62</output>
+            </label>
+          </div>
+
+          <div class="status" id="docStatus" role="status">等待上传文档照片</div>
+
+          <section class="preview-section" aria-label="识别页面结果">
+            <div class="preview-header">
+              <div>
+                <h3>JPG 预览</h3>
+                <p id="docFileMeta">尚未生成 JPG</p>
+              </div>
+              <div class="action-group" aria-label="JPG 操作">
+                <button class="tool-btn" id="jpgRotateLeftBtn" type="button" disabled>左转 90°</button>
+                <button class="tool-btn" id="jpgRotateRightBtn" type="button" disabled>右转 90°</button>
+                <button class="download-btn" id="jpgDownloadBtn" type="button" disabled>下载 JPG</button>
+              </div>
+            </div>
+            <div class="preview-frame">
+              <img id="jpgPreview" alt="识别页面后的 JPG 预览" />
+              <span id="jpgEmptyPreview">处理完成后将在这里预览</span>
             </div>
           </section>
         </section>
