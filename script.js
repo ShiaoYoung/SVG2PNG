@@ -38,6 +38,10 @@ const backgroundStrengthValue = document.querySelector("#backgroundStrengthValue
 let lastImageFile = null;
 let lastDocFile = null;
 
+const SVG_PNG_EXPORT_SCALE = 4;
+const SVG_PNG_MAX_DIMENSION = 12000;
+const SVG_PNG_MAX_PIXELS = 64000000;
+
 const outputs = {
   png: createOutputState({
     extension: ".png",
@@ -207,6 +211,16 @@ function getSvgSize(svgText) {
   return { width: 1024, height: 1024 };
 }
 
+function getSvgPngExportScale(size) {
+  const width = Math.max(1, size.width);
+  const height = Math.max(1, size.height);
+  const maxDimensionScale = SVG_PNG_MAX_DIMENSION / Math.max(width, height);
+  const maxPixelsScale = Math.sqrt(SVG_PNG_MAX_PIXELS / (width * height));
+  const safeScale = Math.min(SVG_PNG_EXPORT_SCALE, maxDimensionScale, maxPixelsScale);
+
+  return Math.max(1, safeScale);
+}
+
 function inlineFontFallback(svgText) {
   const fontStack =
     '"Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", "Source Han Sans SC", Arial, sans-serif';
@@ -350,16 +364,19 @@ async function convertSvgFile(file) {
   try {
     const image = await loadImage(sourceSvgUrl);
     const canvas = document.createElement("canvas");
-    const ratio = window.devicePixelRatio || 1;
-    canvas.width = Math.max(1, Math.round(size.width * ratio));
-    canvas.height = Math.max(1, Math.round(size.height * ratio));
+    const exportScale = getSvgPngExportScale(size);
+    const outputWidth = Math.max(1, Math.round(size.width * exportScale));
+    const outputHeight = Math.max(1, Math.round(size.height * exportScale));
+    canvas.width = outputWidth;
+    canvas.height = outputHeight;
 
     const ctx = canvas.getContext("2d");
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    ctx.clearRect(0, 0, size.width, size.height);
-    ctx.drawImage(image, 0, 0, size.width, size.height);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.clearRect(0, 0, outputWidth, outputHeight);
+    ctx.drawImage(image, 0, 0, outputWidth, outputHeight);
 
-    await setRasterOutput(outputs.png, canvas, file.name, file.name);
+    await setRasterOutput(outputs.png, canvas, file.name, `${file.name}，高清 ${exportScale.toFixed(2)}x`);
     setStatus(svgStatus, "转换完成。");
   } finally {
     URL.revokeObjectURL(sourceSvgUrl);
