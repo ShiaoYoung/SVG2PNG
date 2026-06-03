@@ -38,9 +38,9 @@ const backgroundStrengthValue = document.querySelector("#backgroundStrengthValue
 let lastImageFile = null;
 let lastDocFile = null;
 
-const SVG_PNG_EXPORT_SCALE = 8;
-const SVG_PNG_MAX_DIMENSION = 24000;
-const SVG_PNG_MAX_PIXELS = 144000000;
+const SVG_PNG_EXPORT_SCALE = 16;
+const SVG_PNG_MAX_DIMENSION = 32767;
+const SVG_PNG_MAX_PIXELS = 268435456;
 
 const outputs = {
   png: createOutputState({
