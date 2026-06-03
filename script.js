@@ -38,9 +38,9 @@ const backgroundStrengthValue = document.querySelector("#backgroundStrengthValue
 let lastImageFile = null;
 let lastDocFile = null;
 
-const SVG_PNG_EXPORT_SCALE = 4;
-const SVG_PNG_MAX_DIMENSION = 12000;
-const SVG_PNG_MAX_PIXELS = 64000000;
+const SVG_PNG_EXPORT_SCALE = 8;
+const SVG_PNG_MAX_DIMENSION = 24000;
+const SVG_PNG_MAX_PIXELS = 144000000;
 
 const outputs = {
   png: createOutputState({
@@ -177,8 +177,27 @@ function parseLength(value) {
     return 0;
   }
 
-  const match = String(value).trim().match(/^([\d.]+)/);
-  return match ? Number(match[1]) : 0;
+  const match = String(value)
+    .trim()
+    .match(/^([\d.]+)\s*([a-z%]*)$/i);
+
+  if (!match) {
+    return 0;
+  }
+
+  const amount = Number(match[1]);
+  const unit = match[2].toLowerCase();
+  const unitScale = {
+    "": 1,
+    px: 1,
+    pt: 96 / 72,
+    pc: 16,
+    in: 96,
+    cm: 96 / 2.54,
+    mm: 96 / 25.4,
+  };
+
+  return amount * (unitScale[unit] || 1);
 }
 
 function getSvgSize(svgText) {
